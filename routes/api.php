@@ -19,6 +19,6 @@ use Illuminate\Http\Request;
 
 Route::group(['prefix'=>'v1'],function($app){
 	Route::group(['namespace'=>'Api'],function($app){
-		Route::post('general','ApiController@general');
+		Route::get('general','ApiController@general');
 	});
 });
