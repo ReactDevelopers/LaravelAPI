@@ -19,6 +19,8 @@ use Illuminate\Http\Request;
 
 Route::group(['prefix'=>'v1'],function($app){
 	Route::group(['namespace'=>'Api'],function($app){
-		Route::get('general','ApiController@general');
+		Route::get('getCategoryList','ApiController@getCategoryList');
+		Route::get('getProductList','ApiController@getProductList');
+		Route::get('getProductListCat/{id}','ApiController@getProductListCat');
 	});
 });

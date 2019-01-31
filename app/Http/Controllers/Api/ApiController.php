@@ -15,6 +15,9 @@
 
     use Voucherify\VoucherifyClient;
     use Voucherify\ClientException;
+    use App\Models\Category;
+    use App\Models\Product;
+
 
     class ApiController extends Controller{
         
@@ -47,7 +50,7 @@
 
         private function populateresponse($data){
             $data['message'] = (!empty($data['message']))?"":$this->message;
-            $data['error'] = trans(sprintf("general.%s",$data['message'])); 
+            $data['error'] = /*trans(sprintf("general.%s",$data['message']));*/ $data['message'];
             $data['error_code'] = "";
 
             if(empty($data['status'])){
@@ -70,7 +73,7 @@
                 $data['data'] = (object) $data['data'];
             }
 
-            $data['message'] = trans('general.'.$data['message']);
+            $data['message'] = $data['message'];/*trans('general.'.$data['message']);*/
             return $data;
         }
 
@@ -80,25 +83,62 @@
          * @return Json Response
          */
 
-        public function general(Request $request){
+        public function getCategoryList(Request $request){
             $this->status       = true;
 
-            $employment_types = 'hello';
-
-            $get_category = \DB::table('category')->select('*')->get();
+            $getCategory = Category::select('*')->get();
 
             $this->jsondata = [
-                'employment_types'              => $employment_types,
-                'cats'                          => $get_category,
-                'staticpages'                   => [
-                    'about'                     => 'page/about',
-                    'terms-and-conditions'      => 'page/terms-and-conditions',
-                    'privacy-policy'            => 'page/privacy-policy',
-                    'faq'                       => 'page/community',
-                ],
+                'category'  => $getCategory,
             ]; 
 
-            // dd($request->all(),'1111');
+            return response()->json(
+                $this->populateresponse([
+                    'status' => $this->status,
+                    'data' => $this->jsondata
+                ])
+            );
+        }
+
+        public function getProductList(Request $request){
+            // dd(json_decode(json_encode(Category::with(
+            //     [
+            //         'products'=>function($q){
+            //         }
+            //     ]
+            // )->get()),true));
+            // dd('111');
+            $this->status       = true;
+
+            $getProduct = Product::select('*')->get();
+
+            $this->jsondata = [
+                'product'  => $getProduct,
+            ]; 
+
+            return response()->json(
+                $this->populateresponse([
+                    'status' => $this->status,
+                    'data' => $this->jsondata
+                ])
+            );
+        }
+
+        public function getProductListCat(Request $request,$id=NULL){
+
+            $this->status       = true;
+
+            $getProductCat = json_decode(json_encode(Category::where('category.id',$id)->with(
+                                [
+                                    'products'=>function($q){
+                                    }
+                                ]
+                            )->get()),true);
+
+            $this->jsondata = [
+                'productCat'  => $getProductCat,
+            ]; 
+
             return response()->json(
                 $this->populateresponse([
                     'status' => $this->status,
