@@ -27,7 +27,7 @@ class PassportController extends Controller
             'password' => bcrypt($request->password)
         ]);
  
-        $token = $user->createToken('TutsForWeb')->accessToken;
+        $token = $user->createToken('UserForWeb')->accessToken;
  
         return response()->json(['token' => $token], 200);
     }
@@ -46,40 +46,11 @@ class PassportController extends Controller
         ];
  
         if (auth()->attempt($credentials)) {
-            $token = auth()->user()->createToken('TutsForWeb')->accessToken;
+            $token = auth()->user()->createToken('UserForWeb')->accessToken;
             return response()->json(['token' => $token], 200);
         } else {
             return response()->json(['error' => 'UnAuthorised'], 401);
         }
     }
- 
-    /**
-     * Returns Authenticated User Details
-     *
-     * @return \Illuminate\Http\JsonResponse
-     */
-    public function details()
-    {
-        return response()->json(['user' => auth()->user()], 200);
-    }
-
-    /**
-     * Log the user out of the application.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\Response
-     */
-    public function logout(Request $request)
-    {
-        $value = $request->bearerToken();
-        dd($value,\Auth::user());
-        if (\Auth::check()) {
-            \Auth::user()->AauthAcessToken()->delete();
-            return response()->json(['logout' => 'Success'], 401);
-        }
-        else{
-            return response()->json(['error' => 'Please Login'], 401);
-        }
-
-    }
+    
 }

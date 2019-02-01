@@ -19,15 +19,12 @@ use Illuminate\Http\Request;
 
 
 Route::post('login', 'PassportController@login');
-Route::post('register', 'PassportController@register');
-Route::post('logout', 'PassportController@logout');
-
  
 Route::middleware('auth:api')->group(function () {
 	Route::get('getCategoryList','ApiController@getCategoryList');
 	Route::get('getProductList','ApiController@getProductList');
 	Route::get('getProductListCat/{id}','ApiController@getProductListCat');
-    Route::get('user', 'PassportController@details');
- 
-    // Route::resource('products', 'ProductController');
+
+	Route::post('addCart/{id}','ApiController@addCart');
+	Route::post('getCart','ApiController@getCart');
 });

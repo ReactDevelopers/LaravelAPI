@@ -7,16 +7,11 @@
     use Illuminate\Validation\Rule;
     use Illuminate\Support\Facades\DB;
     use App\Http\Controllers\Controller;
-
     use Auth;
-    use File;
-    use Models\Listings;
-    use Models\Industries;
-
-    use Voucherify\VoucherifyClient;
     use Voucherify\ClientException;
     use App\Models\Category;
     use App\Models\Product;
+    use App\Models\Cart;
 
 
     class ApiController extends Controller{
@@ -50,12 +45,13 @@
 
         private function populateresponse($data){
             $data['message'] = (!empty($data['message']))?"":$this->message;
-            $data['error'] = /*trans(sprintf("general.%s",$data['message']));*/ $data['message'];
+            $data['error'] = "";
             $data['error_code'] = "";
 
             if(empty($data['status'])){
                 $data['status'] = $this->status;
                 $data['error_code'] = $this->message;
+                $data['error'] = $this->message;
             }
             
             $data['status_code'] = $this->status_code;
@@ -73,7 +69,7 @@
                 $data['data'] = (object) $data['data'];
             }
 
-            $data['message'] = $data['message'];/*trans('general.'.$data['message']);*/
+            $data['message'] = $data['message'];
             return $data;
         }
 
@@ -101,13 +97,6 @@
         }
 
         public function getProductList(Request $request){
-            // dd(json_decode(json_encode(Category::with(
-            //     [
-            //         'products'=>function($q){
-            //         }
-            //     ]
-            // )->get()),true));
-            // dd('111');
             $this->status       = true;
 
             $getProduct = Product::select('*')->get();
@@ -147,107 +136,44 @@
             );
         }
 
-        /**
-         * [This method is used for login] 
-         * @param  Request
-         * @return Json Response
-         */
-
-        public function login(Request $request){
-            $request->replace($this->post);
-
-            $validate = \Validator::make($request->all(), [
-                'email'    => 'required|email|max:255',
-                'password' => 'required',
+        public function addCart(Request $request,$id=NULL){
+            $validator = \Validator::make($request->all(), [
+                "quantity" => 'required',
             ],[
-                'email.required'    => 'M0010',
-                'email.email'       => 'M0011',
-                'password.required' => 'M0013'
+                'quantity.required' => 'Enter Quantity'
             ]);
 
-            if($validate->fails()){
-                $this->message = $validate->messages()->first();
-            }else {
-                $result = \Models\Users::findByEmail($this->post['email'],['id_user','password','type','first_name','last_name','name','email','status','api_token','chat_status','is_subscribed','latitude','longitude','currency','social_account']);
-                $match = \Hash::check($this->post['password'], $result['password']);
-
-                /*$token = Auth::attempt(['email' => $this->post['email'], 'password' => $this->post['password'], 'id_user' => $request['id_user']]);*/
-                if(!empty($match)){
-                    if(!empty($result)){
-                        if($result['status'] == 'pending'){
-                            $this->message = 'M0046';
-                            $this->jsondata = [
-                                'type'          => 'confirm',
-                                'title'         => 'M0043',
-                                'messages'      => 'M0046',
-                                'button_one'    => 'M0044',
-                                'button_two'    => 'M0045',
-                                'token'         => ''
-                            ];
-                        }else if($result['status'] == 'inactive'){
-                            $this->message = 'M0002';
-                            $this->jsondata = [
-                                'type'          => 'alert',
-                                'title'         => 'M0026',
-                                'messages'      => 'M0002',
-                                'button'        => 'M0027',
-                                'token'         => ''
-                            ];
-                        }else if($result['status'] == 'suspended'){
-                            $this->message = 'M0003';
-                            $this->jsondata = [
-                                'type'          => 'alert',
-                                'title'         => 'M0026',
-                                'messages'      => 'M0003',
-                                'button'        => 'M0027',
-                                'token'         => ''
-                            ];
-                        }else if($result['status'] == 'trashed'){
-                            $this->message = 'M0004';
-                            $this->jsondata = [
-                                'type'          => 'alert',
-                                'title'         => 'M0026',
-                                'messages'      => 'M0004',
-                                'button'        => 'M0027',
-                                'token'         => ''
-                            ];
-                        }else{
-                            $device_uuid      = @(string)$this->post['device_uuid'];
-                            $device_token     = @(string)$this->post['device_token'];
-                            $device_type      = @(string)$this->post['device_type'];
-                            $device_name      = @(string)$this->post['device_name'];
-                            $latitude         = @(string)$this->post['latitude'];
-                            $longitude        = @(string)$this->post['longitude'];
-                            $thumb_configured = \Models\ThumbDevices::is_device_configured($result["id_user"],$device_uuid);
-                            
-                            if(!empty($device_uuid) && $thumb_configured == DEFAULT_NO_VALUE){
-                                \Models\ThumbDevices::remove_touch_login($device_uuid);
-                            }
-
-                            $this->message    = 'M0000';
-                            $this->status     = true;
-                            $this->jsondata   = self::__dologin($result,$device_token,$device_type,$device_name,$latitude,$longitude,$device_uuid);
-                        }
-                    }else{
-                        $this->message = 'M0004';
-                        $this->jsondata = [
-                            'type'          => 'alert',
-                            'title'         => 'M0026',
-                            'messages'      => 'M0004',
-                            'button'        => 'M0027',
-                            'token'         => ''
-                        ];
-                    }
-                }else{
-                    $this->message = 'M0004';
-                    $this->jsondata = [
-                        'type'          => 'alert',
-                        'title'         => 'M0026',
-                        'messages'      => 'M0004',
-                        'button'        => 'M0027',
-                        'token'         => ''
-                    ];
+            if($validator->fails()){
+                $this->message = $validator->messages()->first();
+            }else{
+                $this->status = true;
+                $cart_exists  =Cart::where('user_id',\Auth::user()->id)->where('product_id',$id)->first();
+                
+                if(empty($cart_exists)){
+                    $cartid = Cart::insert([
+                                        'user_id'=>\Auth::user()->id,
+                                        'product_id'=>$id,
+                                        'quantity'=>$request->quantity,
+                                        'created_at'=>date('Y-m-d h:i:s'),
+                                        'updated_at'=>date('Y-m-d h:i:s'),
+                                    ]);
                 }
+                else{
+                    $cartid = Cart::where('user_id',\Auth::user()->id)
+                                    ->where('product_id',$id)
+                                    ->update([
+                                        'quantity'=>$cart_exists->quantity+$request->quantity,
+                                        'updated_at'=>date('Y-m-d h:i:s'),
+                                    ]);
+                }
+
+                $data = Cart::select('*')->where('user_id',\Auth::user()->id)->get();
+
+                $this->jsondata = [
+                    'cart'  => $data,
+                ]; 
+                $this->message = 'Product has been succesfully added to cart.';
+
             }
 
             return response()->json(
@@ -255,31 +181,30 @@
                     'status' => $this->status,
                     'data' => $this->jsondata
                 ])
-            );            
+            );
+
         }
 
-        /**
-         * [This method is used for logout] 
-         * @param  Request
-         * @return Json Response
-         */
+        public function getCart(Request $request){
 
-        public function logout(Request $request){
-            $request->replace($this->post);
+            $this->status       = true;
+            $getCart = json_decode(json_encode(Cart::where('user_id',\Auth::user()->id)->with(
+                            [
+                                'productdetail'=>function($q){
+                                }
+                            ]
+                        )->get()),true);
 
-            $device_token   = (string) trim($request->device_token);
-            $this->status   = true;
-            
-            if(!empty($request->device_token)){
-                $isDeviceRemoved = \Models\Devices::remove($request->id_user,$request->device_token);
-            }
+            $this->jsondata = [
+                'productCat'  => $getCart,
+            ]; 
 
             return response()->json(
                 $this->populateresponse([
                     'status' => $this->status,
                     'data' => $this->jsondata
                 ])
-            );     
+            );
         }
 
     }
