@@ -11,5 +11,6 @@
 |
 */
 
-Route::resource('/todo', 'TodoListsController');
-Route::post('/todos', 'TodoListsController@delete');
+Route::get('/', function () {
+    return view('welcome');
+});

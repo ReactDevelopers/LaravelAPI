@@ -17,10 +17,17 @@ use Illuminate\Http\Request;
 //     return $request->user();
 // });
 
-Route::group(['prefix'=>'v1'],function($app){
-	Route::group(['namespace'=>'Api'],function($app){
-		Route::get('getCategoryList','ApiController@getCategoryList');
-		Route::get('getProductList','ApiController@getProductList');
-		Route::get('getProductListCat/{id}','ApiController@getProductListCat');
-	});
+
+Route::post('login', 'PassportController@login');
+Route::post('register', 'PassportController@register');
+Route::post('logout', 'PassportController@logout');
+
+ 
+Route::middleware('auth:api')->group(function () {
+	Route::get('getCategoryList','ApiController@getCategoryList');
+	Route::get('getProductList','ApiController@getProductList');
+	Route::get('getProductListCat/{id}','ApiController@getProductListCat');
+    Route::get('user', 'PassportController@details');
+ 
+    // Route::resource('products', 'ProductController');
 });
