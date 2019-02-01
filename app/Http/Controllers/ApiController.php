@@ -84,7 +84,6 @@
          */
 
         public function getCategoryList(Request $request){
-            dd('vggvgv',\Auth::user());
             $this->status       = true;
 
             $getCategory = Category::select('*')->get();
