@@ -46,6 +46,33 @@ class Handler extends ExceptionHandler
      */
     public function render($request, Exception $exception)
     {
+        // return response()->json(
+        //     [
+        //         'errors' => [
+        //             'status' => 401,
+        //             'message' => 'Unauthenticated',
+        //         ]
+        //     ], 401
+        // );
+        if ($exception instanceof Exception && !($exception instanceof AuthenticationException)) {
+            $errorExceptionMessage = sprintf('%s in %s line %s : %s',class_basename($exception),basename($exception->getFile()),$exception->getLine(),$exception->getMessage());
+            if ($request->is('api/*')) {
+               return response()->json([
+                   'status' => false,
+                   'status_code' => 500,
+                   'error' => 'Someting wrong, please try after some time.',
+                   'error_code' => 'exception_found',
+                   'exception' => $errorExceptionMessage,
+               ],500);
+            }  
+            else
+            {
+                $environmentsArr = ['production'];
+                if (config('app.debug') && (in_array(config('app.env'),$environmentsArr)) ) {
+                    // die($errorExceptionMessage);
+                }
+            }
+        }
         return parent::render($request, $exception);
     }
 }
